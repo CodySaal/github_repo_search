@@ -1,14 +1,21 @@
 import { useState, useEffect } from "react"
 import Container from "../components/container"
 import SearchForm from "../components/searchForm"
-import API from "../utils/api"
 import Spinner from "../components/spinner"
+import List from "../components/list"
+import ListItem from "../components/listItem"
+import API from "../utils/api"
+import { lsKey } from "../utils/constants"
 
 const SearchPage = () => {
     const [term, setTerm] = useState("React")
     const [loading, setLoading] = useState(false)
     const [repos, setRepos] = useState([])
     const [savedRepos, setSavedRepos] = useState([])
+
+    useEffect(() => {
+        loadSavedRepos()
+    }, [])
 
     const searchRepos = async () => {
         if (term) {
@@ -25,6 +32,29 @@ const SearchPage = () => {
         }
     }
 
+    const loadSavedRepos = () => {
+        const lsRepos = JSON.parse(localStorage.getItem(lsKey)) || []
+        setSavedRepos(lsRepos)
+    }
+
+    const toggleSaved = repo => {
+        console.log("Toggle saved")
+        const foundRepo = savedRepos.find(savedRepo => savedRepo.id === repo.id)
+        
+        let updatedSavedRepos
+
+        if (foundRepo) {
+            // remove the repo from localStorage
+            updatedSavedRepos = savedRepos.filter(savedRepo => savedRepo.id !== repo.id)
+        } else {
+            // add repo to localStorage
+            updatedSavedRepos = [...savedRepos, repo]
+        }
+        localStorage.setItem(lsKey, JSON.stringify(updatedSavedRepos))
+        loadSavedRepos()
+
+    }
+
     return (
         <Container className="mt-3">
             <h1>Search Github Repos: <span className="badge bg-secondary">{term}</span></h1>
@@ -35,9 +65,23 @@ const SearchPage = () => {
                 handleSubmit={searchRepos}
             />
 
+            <br />
+
             {loading
-             ? <Spinner />
-             : <pre>{JSON.stringify(repos, null, 2)}</pre>
+                ? <Spinner />
+                : <List>
+                    {repos.map(repo => {
+                        const foundRepo = savedRepos.find(savedRepo => savedRepo.id === repo.id)
+                        return (
+                            <ListItem
+                            repo={repo}
+                            saved={foundRepo}
+                            toggleSaved={toggleSaved}
+                            key={repo.id}
+                            />
+                        )
+                    })}
+                </List>
             }
 
         </Container>
